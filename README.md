@@ -2,6 +2,8 @@
 
 A zoomable journey from the Planck length to the edge of the observable universe, inspired by *Scale of the Universe 2*. Everything is drawn and synthesized in the browser. There are no images, audio files, libraries or build step.
 
+![The planets, from Earth to Jupiter, side by side at true scale](screenshot.png)
+
 **Play:** open `index.html` in a browser.
 
 ## Controls
