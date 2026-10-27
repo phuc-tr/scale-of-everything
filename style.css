@@ -1,0 +1,106 @@
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%; overflow: hidden;
+  background: #05070d; color: #e8eef7;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+}
+canvas { position: fixed; inset: 0; display: block; cursor: grab; touch-action: none; }
+canvas.dragging { cursor: grabbing; }
+canvas.hover { cursor: pointer; }
+
+#top {
+  position: fixed; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 18px; pointer-events: none;
+}
+#top h1 {
+  margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; opacity: .75;
+}
+#search-wrap { pointer-events: auto; }
+#search {
+  width: 200px; padding: 7px 12px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.2); background: rgba(0,0,0,.35);
+  color: inherit; font: inherit; font-size: 14px; outline: none;
+}
+#search:focus { border-color: rgba(255,255,255,.5); }
+
+#readout {
+  position: fixed; top: 54px; left: 0; right: 0; text-align: center; pointer-events: none;
+  text-shadow: 0 2px 12px rgba(0,0,0,.6);
+}
+#readout-main { font-size: 30px; font-weight: 300; letter-spacing: .02em; }
+#readout-exp { font-size: 14px; opacity: .65; margin-top: 2px; }
+
+#info {
+  position: fixed; right: 18px; top: 120px; width: 300px; max-width: calc(100vw - 32px);
+  padding: 18px 20px 16px; border-radius: 14px;
+  background: rgba(10,14,24,.82); border: 1px solid rgba(255,255,255,.14);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 10px 40px rgba(0,0,0,.4);
+}
+#info h2 { margin: 0 60px 4px 0; font-size: 20px; font-weight: 600; }
+#info-size { font-size: 13px; opacity: .7; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
+#info p { margin: 0; font-size: 14px; line-height: 1.5; opacity: .9; }
+/* heart and close share one fixed box so their glyphs line up */
+#info-close, #info-heart {
+  position: absolute; top: 10px; width: 28px; height: 28px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; background: none; line-height: 1; cursor: pointer;
+}
+#info-close { right: 10px; color: inherit; font-size: 22px; opacity: .6; }
+#info-close:hover { opacity: 1; }
+#info-heart { right: 40px; color: #ff6b8a; font-size: 19px; opacity: .8; }
+#info-heart:hover { opacity: 1; transform: scale(1.15); }
+#info-heart.on { opacity: 1; }
+#info-src {
+  display: inline-block; margin-top: 10px; font-size: 12px; color: #8cc8ff; text-decoration: none;
+}
+#info-src:hover { text-decoration: underline; }
+#info-src[hidden] { display: none; }
+
+#controls {
+  position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%);
+  width: min(760px, calc(100vw - 32px));
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 999px;
+  background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.12);
+}
+#controls button {
+  flex: none; min-width: 34px; height: 34px; padding: 0 8px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06);
+  color: inherit; font-size: 14px; cursor: pointer;
+}
+#controls button:hover { background: rgba(255,255,255,.14); }
+#controls button.active { background: rgba(120,190,255,.35); border-color: rgba(120,190,255,.7); }
+#track { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
+#slider { width: 100%; margin: 0; accent-color: #8cc8ff; cursor: pointer; }
+/* hearted objects sit on the scale bar at their own size; 8px = thumb radius */
+#hearts { position: absolute; left: 8px; right: 8px; bottom: 100%; height: 0; }
+#hearts button {
+  position: absolute; bottom: 2px; transform: translateX(-50%);
+  min-width: 0; height: auto; padding: 0; border: 0; background: none;
+  color: #ff6b8a; font-size: 15px; line-height: 1; cursor: pointer;
+  text-shadow: 0 1px 4px rgba(0,0,0,.7); transition: transform .15s;
+}
+#hearts button:hover { transform: translateX(-50%) scale(1.35); background: none; }
+#hearts button::after {
+  content: attr(data-name); position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
+  white-space: nowrap; font-size: 12px; color: #fff; background: rgba(10,14,24,.9);
+  padding: 3px 8px; border-radius: 6px; opacity: 0; pointer-events: none; transition: opacity .15s;
+}
+#hearts button:hover::after, #hearts button:focus-visible::after { opacity: 1; }
+
+#hint {
+  position: fixed; bottom: 10px; left: 0; right: 0; text-align: center;
+  font-size: 12px; opacity: .45; pointer-events: none; padding: 0 16px;
+}
+
+@media (max-width: 560px) {
+  #top h1 { font-size: 12px; }
+  #search { width: 140px; }
+  #readout-main { font-size: 24px; }
+  #info { top: auto; bottom: 96px; right: 16px; }
+  #controls button#btn-play-in, #controls button#btn-play-out { display: none; }
+}

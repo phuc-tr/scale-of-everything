@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scale of Everything</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<header id="top">
+  <h1>Scale of Everything</h1>
+  <div id="search-wrap">
+    <input id="search" list="names" placeholder="Jump to…" autocomplete="off">
+    <datalist id="names"></datalist>
+  </div>
+</header>
+
+<div id="readout">
+  <div id="readout-main">1 m</div>
+  <div id="readout-exp">10<sup>0</sup> m</div>
+</div>
+
+<aside id="info" hidden>
+  <button id="info-heart" aria-label="Heart this" title="Heart it to pin it on the scale bar">♡</button>
+  <button id="info-close" aria-label="Close">×</button>
+  <h2 id="info-name"></h2>
+  <div id="info-size"></div>
+  <p id="info-desc"></p>
+  <a id="info-src" target="_blank" rel="noopener noreferrer" hidden></a>
+</aside>
+
+<footer id="controls">
+  <button id="btn-in" title="Zoom in (↓ / -)">−</button>
+  <button id="btn-play-in" title="Auto-zoom inward">◀◀</button>
+  <div id="track">
+    <div id="hearts"></div>
+    <input id="slider" type="range" min="-35.5" max="27.5" step="0.001" value="0.3">
+  </div>
+  <button id="btn-play-out" title="Auto-zoom outward">▶▶</button>
+  <button id="btn-out" title="Zoom out (↑ / +)">+</button>
+  <button id="btn-music" title="Music on/off (M)" aria-pressed="false">♪</button>
+</footer>
+
+<div id="hint">Scroll, drag up/down, use the slider, or ↑ ↓ to change scale · Click anything to learn about it · ♥ to pin it · M for music</div>
+
+<script src="objects.js"></script>
+<script src="music.js"></script>
+<script src="art.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
