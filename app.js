@@ -241,17 +241,63 @@ function updateHeartButton() {
   b.setAttribute("aria-pressed", on);
 }
 // Each hearted object sits on the scale bar at the zoom level that frames it.
+// A clickable tiny picture of a hearted object, with its name on hover.
+function pinButton(o, size) {
+  const b = document.createElement("button"), tip = document.createElement("span");
+  b.className = "pin"; b.setAttribute("aria-label", `Go to ${o.n}`);
+  tip.className = "tip"; tip.textContent = o.n;
+  b.append(thumbnail(o, size), tip);
+  b.onclick = () => { focusOn(o); markInteracted(); };
+  return b;
+}
+// Hearted objects sit on the scale bar at their zoom level. Ones too close to
+// fit side by side share a folder that fans them out on hover (or tap).
+const PIN = 14, PIN_GAP = 4, FAN_PIN = 20;
 function renderHearts() {
-  const box = $("hearts");
+  const box = $("hearts"), width = box.clientWidth;
   box.replaceChildren();
-  for (const o of OBJECTS) {
-    if (!hearts.has(o.n)) continue;
-    const b = document.createElement("button");
-    b.textContent = "♥"; b.dataset.name = o.n; b.setAttribute("aria-label", `Go to ${o.n}`);
-    b.style.left = `${((clamp(o.fv, MIN_V, MAX_V) - MIN_V) / (MAX_V - MIN_V)) * 100}%`;
-    b.onclick = () => { focusOn(o); markInteracted(); };
-    box.appendChild(b);
+  const at = (o) => (clamp(o.fv, MIN_V, MAX_V) - MIN_V) / (MAX_V - MIN_V);
+  const groups = [];
+  for (const o of OBJECTS.filter((o) => hearts.has(o.n)).sort((a, b) => a.fv - b.fv)) {
+    const g = groups[groups.length - 1];
+    if (g && (at(o) - g.end) * width < PIN + PIN_GAP) { g.items.push(o); g.end = at(o); }
+    else groups.push({ items: [o], start: at(o), end: at(o) });
   }
+  for (const { items, start, end } of groups) {
+    let el;
+    if (items.length === 1) el = pinButton(items[0], PIN);
+    else {
+      el = document.createElement("div"); el.className = "folder";
+      const face = document.createElement("button"), count = document.createElement("span"), fan = document.createElement("div");
+      face.className = "face"; face.setAttribute("aria-label", `${items.length} hearted: ${items.map((o) => o.n).join(", ")}`);
+      count.className = "count"; count.textContent = items.length;
+      face.append(thumbnail(items[0], PIN), count);
+      face.onclick = () => el.classList.toggle("open");
+      fan.className = "fan";
+      for (const o of items) fan.append(pinButton(o, FAN_PIN));
+      el.append(face, fan);
+    }
+    el.style.left = `${((start + end) / 2) * 100}%`;
+    box.appendChild(el);
+  }
+}
+
+// A small standalone picture of an object, using the same artwork as the scene.
+function thumbnail(o, size) {
+  const cv = document.createElement("canvas"), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = cv.height = size * dpr;
+  const c = cv.getContext("2d");
+  const p = (size * dpr * 0.82) / Math.max(o.w, o.h, 1);
+  c.translate((size * dpr) / 2, (size * dpr) / 2);
+  prepare(o);
+  if (CACHED[o.k]) {
+    const R = CACHED[o.k];
+    c.drawImage(sprite(o), -p * R, -p * R, p * 2 * R, p * 2 * R);
+  } else {
+    c.scale(p, p);
+    K[o.k](c, o, p, rng(o.seed));
+  }
+  return cv;
 }
 function toggleHeart() {
   if (!focus) return;
@@ -291,7 +337,7 @@ function resize() {
   canvas.style.width = W + "px"; canvas.style.height = H + "px";
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
-window.addEventListener("resize", resize);
+window.addEventListener("resize", () => { resize(); renderHearts(); });
 
 function markInteracted() {
   if (interacted) return;
@@ -384,12 +430,24 @@ $("info-close").onclick = closeInfo;
 $("info-heart").onclick = toggleHeart;
 renderHearts();
 
-function toggleMusic() {
-  const on = Music.toggle();
+// Music is on by default and remembers the visitor's choice. Browsers only allow
+// sound after an interaction, so it starts silently and becomes audible on the
+// first click, tap or key press.
+const MUSIC_KEY = "scale-music";
+function showMusicState(on) {
   $("btn-music").classList.toggle("active", on);
   $("btn-music").setAttribute("aria-pressed", on);
 }
+function toggleMusic() {
+  const on = Music.toggle();
+  showMusicState(on);
+  try { localStorage.setItem(MUSIC_KEY, on ? "on" : "off"); } catch { /* storage unavailable */ }
+}
 $("btn-music").onclick = toggleMusic;
+if ((() => { try { return localStorage.getItem(MUSIC_KEY) !== "off"; } catch { return true; } })()) {
+  showMusicState(Music.toggle());
+}
+for (const type of ["pointerdown", "keydown", "touchend"]) window.addEventListener(type, () => Music.unlock(), { capture: true });
 
 const search = $("search"), list = $("names");
 for (const o of OBJECTS) { if (o.secret) continue; const opt = document.createElement("option"); opt.value = o.n; list.appendChild(opt); }

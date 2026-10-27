@@ -129,6 +129,9 @@ const Music = (() => {
 
   return {
     toggle() { playing ? stop() : start(); return playing; },
+    // Browsers keep audio suspended until the visitor interacts with the page;
+    // call this from a click / key handler to let already-started music sound.
+    unlock() { if (ac && playing && ac.state !== "running") ac.resume(); },
     get playing() { return playing; },
   };
 })();
