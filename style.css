@@ -3,8 +3,11 @@ html, body {
   margin: 0; height: 100%; overflow: hidden;
   background: #05070d; color: #e8eef7;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  user-select: none;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  /* the canvas handles every pinch and swipe itself; stop the browser zooming or bouncing the page */
+  touch-action: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent;
 }
+button, input, a { touch-action: manipulation; }
 #c { position: fixed; inset: 0; display: block; cursor: grab; touch-action: none; }
 #c.dragging { cursor: grabbing; }
 #c.hover { cursor: pointer; }
@@ -125,6 +128,13 @@ html, body {
   #top h1 { font-size: 12px; }
   #search { width: 140px; }
   #readout-main { font-size: 24px; }
-  #info { top: auto; bottom: 96px; right: 16px; }
+  #info { top: auto; bottom: calc(112px + env(safe-area-inset-bottom)); right: 16px; }
   #controls button#btn-play-in, #controls button#btn-play-out { display: none; }
+  #controls { bottom: calc(40px + env(safe-area-inset-bottom)); }
+  #hint { bottom: calc(10px + env(safe-area-inset-bottom)); font-size: 11px; }
+}
+/* bigger slider thumb for fingers */
+@media (pointer: coarse) {
+  #slider { height: 28px; }
+  #controls button { min-width: 40px; height: 40px; }
 }

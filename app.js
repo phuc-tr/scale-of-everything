@@ -313,11 +313,17 @@ function focusOn(o) {
 // ---------- loop ----------
 let last = performance.now();
 let sliderDragging = false;
+let fling = 0, dragVel = 0, lastMoveT = 0; // touch drags keep coasting after release, in powers of ten per second
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (playDir) {
     targetV = clamp(targetV + playDir * dt * 0.7, MIN_V, MAX_V);
     if (targetV === MIN_V || targetV === MAX_V) { playDir = 0; updatePlayButtons(); }
+  }
+  if (fling) {
+    targetV = clamp(targetV + fling * dt, MIN_V, MAX_V);
+    fling *= Math.exp(-dt * 3.5);
+    if (Math.abs(fling) < 0.05 || targetV === MIN_V || targetV === MAX_V) fling = 0;
   }
   V += (targetV - V) * (1 - Math.exp(-dt * 7));
   if (Math.abs(targetV - V) < 1e-5) V = targetV;
@@ -339,12 +345,15 @@ function resize() {
 }
 window.addEventListener("resize", () => { resize(); renderHearts(); });
 
+if (matchMedia("(pointer: coarse)").matches)
+  $("hint").textContent = "Pinch or swipe up/down to zoom · Tap anything to learn about it";
+
 function markInteracted() {
   if (interacted) return;
   interacted = true;
   $("hint").style.transition = "opacity 1.5s"; $("hint").style.opacity = "0";
 }
-function zoomBy(d) { targetV = clamp(targetV + d, MIN_V, MAX_V); playDir = 0; updatePlayButtons(); markInteracted(); }
+function zoomBy(d) { fling = 0; targetV = clamp(targetV + d, MIN_V, MAX_V); playDir = 0; updatePlayButtons(); markInteracted(); }
 
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
@@ -352,11 +361,14 @@ canvas.addEventListener("wheel", (e) => {
   zoomBy(clamp(d, -200, 200) * 0.0018);
 }, { passive: false });
 
+// Fingers are blunter than a mouse: give touch taps a bigger target and more wiggle room.
+let touchInput = false;
 function pick(mx, my) {
+  const minHit = touchInput ? 24 : 10;
   for (let i = visible.length - 1; i >= 0; i--) {
     const { o, sx, sy, p, alpha } = visible[i];
     if (alpha < 0.3 || p > 1.6 * M) continue;
-    const hw = Math.max(p * o.w / 2, 10), hh = Math.max(p * o.h / 2, 10);
+    const hw = Math.max(p * o.w / 2, minHit), hh = Math.max(p * o.h / 2, minHit);
     if (Math.abs(mx - sx) < hw && Math.abs(my - sy) < hh) return o;
   }
   return null;
@@ -365,6 +377,8 @@ function pick(mx, my) {
 const pointers = new Map();
 let dragging = false, downX = 0, downY = 0, moved = false, pinchDist = 0;
 canvas.addEventListener("pointerdown", (e) => {
+  touchInput = e.pointerType !== "mouse";
+  fling = 0; dragVel = 0;
   canvas.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, [e.clientX, e.clientY]);
   if (pointers.size === 1) { dragging = true; moved = false; downX = e.clientX; downY = e.clientY; }
@@ -373,6 +387,7 @@ canvas.addEventListener("pointerdown", (e) => {
 canvas.addEventListener("pointermove", (e) => {
   const prev = pointers.get(e.pointerId);
   if (!prev) {
+    if (e.pointerType !== "mouse") return;
     hovered = pick(e.clientX, e.clientY);
     canvas.classList.toggle("hover", !!hovered);
     return;
@@ -380,13 +395,18 @@ canvas.addEventListener("pointermove", (e) => {
   pointers.set(e.pointerId, [e.clientX, e.clientY]);
   if (pointers.size === 2) {
     const [a, b] = [...pointers.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
-    if (pinchDist > 0) zoomBy(-Math.log10(d / pinchDist));
+    if (pinchDist > 0) zoomBy(-2.5 * Math.log10(d / pinchDist)); // 1:1 pinching is far too slow across 60 powers of ten
     pinchDist = d;
     return;
   }
-  if (Math.hypot(e.clientX - downX, e.clientY - downY) > 5) {
+  if (moved || Math.hypot(e.clientX - downX, e.clientY - downY) > (touchInput ? 14 : 5)) {
     if (!moved) { moved = true; canvas.classList.add("dragging"); }
-    zoomBy((e.clientY - prev[1]) * 0.004);
+    // a full-height swipe on a phone covers about 7 powers of ten
+    const d = (e.clientY - prev[1]) * (touchInput ? 7 / H : 0.004);
+    zoomBy(d);
+    const t = e.timeStamp, dt = Math.max(1, t - lastMoveT) / 1000;
+    if (lastMoveT && dt < 0.1) dragVel = dragVel * 0.6 + (d / dt) * 0.4;
+    lastMoveT = t;
   }
 });
 function endPointer(e) {
@@ -396,7 +416,8 @@ function endPointer(e) {
       const o = pick(e.clientX, e.clientY);
       if (o) { focusOn(o); markInteracted(); } else closeInfo();
     }
-    dragging = false; canvas.classList.remove("dragging");
+    else if (dragging && touchInput && e.timeStamp - lastMoveT < 80) fling = clamp(dragVel, -12, 12);
+    dragging = false; canvas.classList.remove("dragging"); dragVel = 0; lastMoveT = 0;
   }
   pinchDist = 0;
 }
